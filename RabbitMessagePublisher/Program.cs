@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 using RabbitMQ.Client;
 
@@ -20,43 +20,44 @@ namespace RabbitMessagePublisher
             else
             {
                 var filePath = args[0];
+                string queueName = ConfigurationManager.AppSettings["queueName"];
+                string hostName = ConfigurationManager.AppSettings["hostName"];
 
-                var rabbitmqFactory = new ConnectionFactory {HostName = "localhost"};
+                var rabbitmqFactory = new ConnectionFactory {HostName = hostName};
                 using(var connection = rabbitmqFactory.CreateConnection())
                 {
                     using(var channel = connection.CreateModel())
                     {
-                        channel.QueueDeclare(queue:"pricing-cleaner",
-                            durable:true,
-                            exclusive:false,
-                            autoDelete:false,
-                            arguments:null);
+                        channel.QueueDeclare(queueName,
+                            true,
+                            false,
+                            false,
+                            null);
 
                         var messageLoader = new MessageLoader();
                         var jsonMessages = messageLoader.Read(filePath);
-                        PublishMessages(channel, jsonMessages);
-
+                        PublishMessages(channel, queueName, jsonMessages);
                     }
                 }
-
             }
             Console.ReadLine();
         }
 
-        private static int PublishMessages(IModel channel, IEnumerable<string> messages)
+        private static void PublishMessages(IModel channel, string queueName, IEnumerable<string> messages)
         {
             int counter = 0;
             foreach(string message in messages)
             {
-                var body = Encoding.UTF8.GetBytes(message);
-                counter++;
-                channel.BasicPublish(exchange:"",
-                    routingKey: "pricing-cleaner",
-                    basicProperties:null,
-                    body:body);
-                Console.WriteLine($" Sent {counter} Content: {message}");
+                {
+                    var body = Encoding.UTF8.GetBytes(message);
+                    counter++;
+                    channel.BasicPublish("",
+                        queueName,
+                        null,
+                        body);
+                    Console.WriteLine($" Sent {counter} Content: {message}");
+                }
             }
-            return counter;
         }
     }
 }
