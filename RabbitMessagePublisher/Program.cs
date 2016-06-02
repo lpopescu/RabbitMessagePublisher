@@ -55,9 +55,14 @@ namespace RabbitMessagePublisher
                         queueName,
                         null,
                         body);
-                    Console.WriteLine($" Sent {counter} Content: {message}");
+                    Console.WriteLine($"[{GetTime()}] Sent {counter} Content: {message}");
                 }
             }
+        }
+
+        private static string GetTime()
+        {
+            return $"{ DateTime.Now.Hour}:{ DateTime.Now.Minute}:{ DateTime.Now.Second}:{ DateTime.Now.Millisecond}";
         }
     }
 }
